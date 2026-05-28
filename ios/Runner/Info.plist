@@ -89,6 +89,14 @@
 	</dict>
 	<key>NSUserTrackingUsageDescription</key>
 	<string>In order to provide you with more relevant advertising content, we need to obtain the advertising identifier of your device. Your data is only used for personalized advertising services.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>This app needs camera access to take photos.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>This app listens for claps or finger snaps to trigger the camera countdown.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>This app saves captured photos to your photo library.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app saves captured photos to your photo library.</string>
 	<key>SKAdNetworkItems</key>
 	<array>
 		<dict>

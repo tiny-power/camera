@@ -1,6 +1,6 @@
-import 'package:camera/generated/l10n.dart';
-import 'package:camera/providers/rewarder_model.dart';
-import 'package:camera/providers/udider_model.dart';
+import 'package:hand_camera/generated/l10n.dart';
+import 'package:hand_camera/providers/rewarder_model.dart';
+import 'package:hand_camera/providers/udider_model.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:watermark_widget/watermark_widget.dart';

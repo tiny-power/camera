@@ -1,4 +1,4 @@
-import 'package:camera/database_helper.dart';
+import 'package:hand_camera/database_helper.dart';
 import 'package:flutter/foundation.dart';
 
 class RewarderModel extends ChangeNotifier {

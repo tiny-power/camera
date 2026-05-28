@@ -1,7 +1,8 @@
-import 'package:camera/pages/home_page.dart';
+import 'package:hand_camera/pages/home_page.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:camera/pages/record_page.dart';
+import 'package:hand_camera/pages/photo_captured_page.dart';
+import 'package:hand_camera/pages/record_page.dart';
 
 final RouteObserver<ModalRoute<void>> routeObserver =
     RouteObserver<ModalRoute<void>>();
@@ -12,6 +13,17 @@ class AppRoutes {
     initialLocation: '/',
     routes: [
       GoRoute(path: '/', builder: (context, state) => const HomePage()),
+      GoRoute(
+        path: '/photo-captured',
+        builder: (context, state) {
+          final extra = state.extra;
+          if (extra is List<String>) {
+            return PhotoCapturedPage(imagePaths: extra);
+          }
+          final imagePath = extra as String? ?? '';
+          return PhotoCapturedPage(imagePaths: [imagePath]);
+        },
+      ),
       GoRoute(path: '/record', builder: (context, state) => const RecordPage()),
     ],
   );

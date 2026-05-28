@@ -3,14 +3,14 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:camera/providers/banner_model.dart';
-import 'package:camera/providers/native_model.dart';
-import 'package:camera/providers/purchage_model.dart';
-import 'package:camera/providers/reward_model.dart';
-import 'package:camera/providers/rewarder_model.dart';
-import 'package:camera/providers/seconder_model.dart';
-import 'package:camera/providers/splash_model.dart';
-import 'package:camera/providers/udider_model.dart';
+import 'package:hand_camera/providers/banner_model.dart';
+import 'package:hand_camera/providers/native_model.dart';
+import 'package:hand_camera/providers/purchage_model.dart';
+import 'package:hand_camera/providers/reward_model.dart';
+import 'package:hand_camera/providers/rewarder_model.dart';
+import 'package:hand_camera/providers/seconder_model.dart';
+import 'package:hand_camera/providers/splash_model.dart';
+import 'package:hand_camera/providers/udider_model.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:dio/dio.dart';
 import 'package:flex_color_scheme/flex_color_scheme.dart';
