@@ -83,8 +83,8 @@ class _MyAppState extends State<MyApp> {
       ],
       child: MaterialApp.router(
         debugShowCheckedModeBanner: false,
-        theme: FlexThemeData.light(scheme: FlexScheme.shadOrange),
-        darkTheme: FlexThemeData.dark(scheme: FlexScheme.shadOrange),
+        theme: FlexThemeData.light(scheme: FlexScheme.shadYellow),
+        darkTheme: FlexThemeData.dark(scheme: FlexScheme.shadYellow),
         themeMode: ThemeMode.system,
         routerConfig: AppRoutes.router,
         localizationsDelegates: [
