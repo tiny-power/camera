@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:camera/camera.dart';
 import 'package:hand_camera/routes/app_routes.dart';
@@ -7,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:noise_meter/noise_meter.dart';
+import 'package:path_provider/path_provider.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -30,11 +32,12 @@ class _HomePageState extends State<HomePage>
   bool _isListening = false;
   bool _isCountingDown = false;
   bool _isTakingPicture = false;
-  bool _isFlashOn = false;
+  FlashMode _flashMode = FlashMode.always;
   bool _resumeListeningAfterCapture = false;
   int _countdown = 3;
   int _countdownSeconds = 3;
   int _captureCount = 1;
+  String _aspectRatioLabel = '4:3';
   double _ambientDecibel = 0;
   DateTime? _lastTriggerAt;
 
@@ -45,6 +48,11 @@ class _HomePageState extends State<HomePage>
     'Burst 10': 10,
     'Burst 15': 15,
     'Burst 20': 20,
+  };
+  static const Map<String, double> _aspectRatioOptions = {
+    '4:3': 4 / 3,
+    '16:9': 16 / 9,
+    '1:1': 1,
   };
   static const double _absoluteTriggerDecibel = 82;
   static const double _relativeTriggerDecibel = 18;
@@ -177,11 +185,9 @@ class _HomePageState extends State<HomePage>
 
   Future<void> _applyFlashMode(CameraController controller) async {
     try {
-      await controller.setFlashMode(
-        _isFlashOn ? FlashMode.torch : FlashMode.off,
-      );
+      await controller.setFlashMode(_flashMode);
     } catch (_) {
-      _isFlashOn = false;
+      _flashMode = FlashMode.off;
       await controller.setFlashMode(FlashMode.off).catchError((_) {});
     }
   }
@@ -213,6 +219,29 @@ class _HomePageState extends State<HomePage>
     };
   }
 
+  FlashMode get _nextFlashMode {
+    return switch (_flashMode) {
+      FlashMode.always => FlashMode.auto,
+      FlashMode.auto => FlashMode.off,
+      _ => FlashMode.always,
+    };
+  }
+
+  IconData get _flashIcon {
+    return switch (_flashMode) {
+      FlashMode.always => Icons.flash_on,
+      FlashMode.auto => Icons.flash_auto,
+      _ => Icons.flash_off,
+    };
+  }
+
+  Color _flashIconColor(ColorScheme colorScheme) {
+    return switch (_flashMode) {
+      FlashMode.always || FlashMode.auto => colorScheme.primary,
+      _ => colorScheme.onInverseSurface,
+    };
+  }
+
   Future<void> _toggleFlash() async {
     final controller = _cameraController;
     if (controller == null ||
@@ -222,19 +251,17 @@ class _HomePageState extends State<HomePage>
       return;
     }
 
-    final nextFlashState = !_isFlashOn;
+    final nextFlashMode = _nextFlashMode;
     try {
-      await controller.setFlashMode(
-        nextFlashState ? FlashMode.torch : FlashMode.off,
-      );
+      await controller.setFlashMode(nextFlashMode);
       if (!mounted) return;
       setState(() {
-        _isFlashOn = nextFlashState;
+        _flashMode = nextFlashMode;
       });
     } on CameraException catch (error) {
       if (!mounted) return;
       setState(() {
-        _isFlashOn = false;
+        _flashMode = FlashMode.off;
         _cameraError = error.description ?? error.code;
       });
     }
@@ -257,6 +284,21 @@ class _HomePageState extends State<HomePage>
       _activeSettingsPanel = _activeSettingsPanel == 'capture'
           ? null
           : 'capture';
+    });
+  }
+
+  void _toggleAspectRatio() {
+    if (_isCountingDown || _isTakingPicture) return;
+
+    final labels = _aspectRatioOptions.keys.toList();
+    final currentIndex = labels.indexOf(_aspectRatioLabel);
+    final nextIndex = currentIndex == -1
+        ? 0
+        : (currentIndex + 1) % labels.length;
+
+    setState(() {
+      _aspectRatioLabel = labels[nextIndex];
+      _activeSettingsPanel = null;
     });
   }
 
@@ -439,7 +481,8 @@ class _HomePageState extends State<HomePage>
       final imagePaths = <String>[];
       for (var index = 0; index < _captureCount; index += 1) {
         final image = await controller.takePicture();
-        imagePaths.add(image.path);
+        final croppedPath = await _cropImageToAspectRatio(image.path);
+        imagePaths.add(croppedPath);
         if (index < _captureCount - 1) {
           await Future.delayed(const Duration(milliseconds: 280));
         }
@@ -473,10 +516,84 @@ class _HomePageState extends State<HomePage>
     }
   }
 
+  Future<String> _cropImageToAspectRatio(String imagePath) async {
+    final imageFile = File(imagePath);
+    final bytes = await imageFile.readAsBytes();
+    final codec = await ui.instantiateImageCodec(bytes);
+    final frame = await codec.getNextFrame();
+    final sourceImage = frame.image;
+
+    try {
+      final sourceWidth = sourceImage.width.toDouble();
+      final sourceHeight = sourceImage.height.toDouble();
+      final selectedAspectRatio =
+          _aspectRatioOptions[_aspectRatioLabel] ??
+          _aspectRatioOptions.values.first;
+      final targetAspectRatio = sourceWidth >= sourceHeight
+          ? selectedAspectRatio
+          : 1 / selectedAspectRatio;
+      final sourceAspectRatio = sourceWidth / sourceHeight;
+
+      late final Rect sourceRect;
+      if (sourceAspectRatio > targetAspectRatio) {
+        final cropWidth = sourceHeight * targetAspectRatio;
+        sourceRect = Rect.fromLTWH(
+          (sourceWidth - cropWidth) / 2,
+          0,
+          cropWidth,
+          sourceHeight,
+        );
+      } else {
+        final cropHeight = sourceWidth / targetAspectRatio;
+        sourceRect = Rect.fromLTWH(
+          0,
+          (sourceHeight - cropHeight) / 2,
+          sourceWidth,
+          cropHeight,
+        );
+      }
+
+      final outputWidth = sourceRect.width.round();
+      final outputHeight = sourceRect.height.round();
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(recorder);
+      canvas.drawImageRect(
+        sourceImage,
+        sourceRect,
+        Rect.fromLTWH(0, 0, outputWidth.toDouble(), outputHeight.toDouble()),
+        Paint(),
+      );
+
+      final picture = recorder.endRecording();
+      final croppedImage = await picture.toImage(outputWidth, outputHeight);
+      final croppedBytes = await croppedImage.toByteData(
+        format: ui.ImageByteFormat.png,
+      );
+      croppedImage.dispose();
+      picture.dispose();
+
+      if (croppedBytes == null) {
+        return imagePath;
+      }
+
+      final temporaryDirectory = await getTemporaryDirectory();
+      final croppedFile = File(
+        '${temporaryDirectory.path}/aspect_${DateTime.now().microsecondsSinceEpoch}.png',
+      );
+      await croppedFile.writeAsBytes(croppedBytes.buffer.asUint8List());
+      try {
+        await imageFile.delete();
+      } catch (_) {}
+      return croppedFile.path;
+    } finally {
+      sourceImage.dispose();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final buttonBackground = colorScheme.scrim.withValues(alpha: 0.42);
+    final buttonBackground = colorScheme.onTertiaryFixed;
     final buttonForeground = colorScheme.onInverseSurface;
 
     return Scaffold(
@@ -502,8 +619,8 @@ class _HomePageState extends State<HomePage>
                       color: buttonBackground,
                     ),
                     child: Icon(
-                      _isFlashOn ? Icons.flash_on : Icons.flash_off,
-                      color: buttonForeground,
+                      _flashIcon,
+                      color: _flashIconColor(colorScheme),
                     ),
                   ),
                 ),
@@ -521,9 +638,39 @@ class _HomePageState extends State<HomePage>
                     child: Row(
                       spacing: 4,
                       children: [
-                        Icon(Icons.timer, size: 18, color: buttonForeground),
+                        Icon(Icons.timer, size: 18, color: colorScheme.primary),
                         Text(
                           '${_countdownSeconds}s',
+                          style: TextStyle(
+                            color: colorScheme.primary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                GestureDetector(
+                  onTap: _isCountingDown || _isTakingPicture
+                      ? null
+                      : _toggleAspectRatio,
+                  child: Container(
+                    padding: .only(top: 8, bottom: 8, left: 12, right: 12),
+                    height: 40,
+                    decoration: BoxDecoration(
+                      borderRadius: .circular(40),
+                      color: buttonBackground,
+                    ),
+                    child: Row(
+                      spacing: 4,
+                      children: [
+                        Icon(
+                          Icons.aspect_ratio,
+                          size: 18,
+                          color: buttonForeground,
+                        ),
+                        Text(
+                          _aspectRatioLabel,
                           style: TextStyle(
                             color: buttonForeground,
                             fontWeight: FontWeight.w700,
@@ -533,32 +680,18 @@ class _HomePageState extends State<HomePage>
                     ),
                   ),
                 ),
-                GestureDetector(
-                  onTap: _isInitializing || _isCountingDown || _isTakingPicture
-                      ? null
-                      : _toggleFlash,
-                  child: Container(
-                    padding: .only(top: 8, bottom: 8, left: 12, right: 12),
-                    height: 40,
-                    decoration: BoxDecoration(
-                      borderRadius: .circular(40),
-                      color: buttonBackground,
-                    ),
-                    child: Icon(Icons.screen_rotation, color: buttonForeground),
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () => {},
-                  child: Container(
-                    padding: .only(top: 8, bottom: 8, left: 12, right: 12),
-                    height: 40,
-                    decoration: BoxDecoration(
-                      borderRadius: .circular(40),
-                      color: buttonBackground,
-                    ),
-                    child: Icon(Icons.settings, color: buttonForeground),
-                  ),
-                ),
+                // GestureDetector(
+                //   onTap: () => {},
+                //   child: Container(
+                //     padding: .only(top: 8, bottom: 8, left: 12, right: 12),
+                //     height: 40,
+                //     decoration: BoxDecoration(
+                //       borderRadius: .circular(40),
+                //       color: buttonBackground,
+                //     ),
+                //     child: Icon(Icons.settings, color: buttonForeground),
+                //   ),
+                // ),
               ],
             ),
           ),
@@ -587,12 +720,16 @@ class _HomePageState extends State<HomePage>
                           _isListening
                               ? Icons.mic_none_outlined
                               : Icons.mic_off_outlined,
-                          color: buttonForeground,
+                          color: _isListening
+                              ? colorScheme.primary
+                              : buttonForeground,
                         ),
                         Text(
                           _isListening ? 'Listening...' : 'Clap Mode',
                           style: TextStyle(
-                            color: buttonForeground,
+                            color: _isListening
+                                ? colorScheme.primary
+                                : buttonForeground,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -675,6 +812,41 @@ class _HomePageState extends State<HomePage>
             bottom: 146,
             child: Center(child: _buildCaptureButton()),
           ),
+          if (_isListening && !_isCountingDown && !_isTakingPicture)
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: 232,
+              child: Center(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: buttonBackground,
+                    borderRadius: BorderRadius.circular(40),
+                    boxShadow: [
+                      BoxShadow(
+                        color: colorScheme.scrim.withValues(alpha: 0.18),
+                        blurRadius: 14,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 14,
+                    ),
+                    child: Text(
+                      '👏 Clap to take photo',
+                      style: TextStyle(
+                        color: colorScheme.primary,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
           if (_isCountingDown)
             Positioned.fill(
               child: ColoredBox(
@@ -850,6 +1022,29 @@ class _HomePageState extends State<HomePage>
       return const Center(child: CircularProgressIndicator());
     }
 
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final selectedAspectRatio =
+            _aspectRatioOptions[_aspectRatioLabel] ??
+            _aspectRatioOptions.values.first;
+        final frameAspectRatio = constraints.maxWidth <= constraints.maxHeight
+            ? 1 / selectedAspectRatio
+            : selectedAspectRatio;
+
+        return ColoredBox(
+          color: Colors.black,
+          child: Center(
+            child: AspectRatio(
+              aspectRatio: frameAspectRatio,
+              child: _buildCameraPreview(controller),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildCameraPreview(CameraController controller) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final previewSize = controller.value.previewSize;
