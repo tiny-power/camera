@@ -19,7 +19,6 @@ import 'package:provider/provider.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'routes/app_routes.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
-import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'generated/l10n.dart';
 import 'package:event_bus/event_bus.dart';
@@ -57,9 +56,6 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    WidgetsFlutterBinding.ensureInitialized().addPostFrameCallback((_) async {
-      await AppTrackingTransparency.requestTrackingAuthorization();
-    });
     initialization();
   }
 

@@ -43,7 +43,6 @@ dependencies:
   watermark_widget: ^1.0.0
   flutter_udid: ^4.1.1
   event_bus: ^2.0.1
-  app_tracking_transparency: ^2.0.6+1
   path_provider: ^2.1.5
   intl: ^0.20.2
   flutter_localization: ^0.3.3
@@ -60,7 +59,6 @@ dependencies:
   noise_meter: ^5.1.0
   permission_handler: ^12.0.1
   gal: ^2.3.2
-  image: ^4.8.0
 
 dev_dependencies:
   flutter_test:
