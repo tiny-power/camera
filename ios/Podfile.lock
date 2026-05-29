@@ -1,4 +1,6 @@
 PODS:
+  - app_tracking_transparency (0.0.1):
+    - Flutter
   - audio_streamer (4.3.0):
     - Flutter
   - camera_avfoundation (0.0.1):
@@ -41,6 +43,7 @@ PODS:
     - Flutter
 
 DEPENDENCIES:
+  - app_tracking_transparency (from `.symlinks/plugins/app_tracking_transparency/ios`)
   - audio_streamer (from `.symlinks/plugins/audio_streamer/ios`)
   - camera_avfoundation (from `.symlinks/plugins/camera_avfoundation/ios`)
   - Flutter (from `Flutter`)
@@ -64,6 +67,8 @@ SPEC REPOS:
     - RevenueCatUI
 
 EXTERNAL SOURCES:
+  app_tracking_transparency:
+    :path: ".symlinks/plugins/app_tracking_transparency/ios"
   audio_streamer:
     :path: ".symlinks/plugins/audio_streamer/ios"
   camera_avfoundation:
@@ -92,6 +97,7 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/url_launcher_ios/ios"
 
 SPEC CHECKSUMS:
+  app_tracking_transparency: 3d84f147f67ca82d3c15355c36b1fa6b66ca7c92
   audio_streamer: 85e5b27e443525fcfe375052132327539c89d19a
   camera_avfoundation: 968a9a5323c79a99c166ad9d7866bfd2047b5a9b
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467

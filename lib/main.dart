@@ -3,6 +3,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import 'package:hand_camera/providers/banner_model.dart';
 import 'package:hand_camera/providers/native_model.dart';
 import 'package:hand_camera/providers/purchage_model.dart';
@@ -15,6 +16,8 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:dio/dio.dart';
 import 'package:flex_color_scheme/flex_color_scheme.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'routes/app_routes.dart';
@@ -57,11 +60,20 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
     initialization();
+    _requestTrackingAuthorization();
   }
 
   void initialization() async {
     await Future.delayed(const Duration(seconds: 1));
     FlutterNativeSplash.remove();
+  }
+
+  Future<void> _requestTrackingAuthorization() async {
+    if (!Platform.isIOS) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await AppTrackingTransparency.requestTrackingAuthorization();
+    });
   }
 
   @override
