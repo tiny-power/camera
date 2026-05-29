@@ -523,105 +523,102 @@ class _HomePageState extends State<HomePage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
-      body: SafeArea(
-        child: Stack(
-          children: [
-            Positioned.fill(child: _buildCameraView()),
-            Positioned(
-              left: 16,
-              top: 16,
-              child: IconButton.filledTonal(
-                onPressed: () => context.push('/record'),
-                icon: const Icon(Icons.history),
-                tooltip: 'Operation Log',
-              ),
+      body: Stack(
+        children: [
+          Positioned.fill(child: _buildCameraView()),
+          Positioned(
+            left: 16,
+            top: 16,
+            child: IconButton.filledTonal(
+              onPressed: () => context.push('/record'),
+              icon: const Icon(Icons.history),
+              tooltip: 'Operation Log',
             ),
-            Positioned(
-              right: 16,
-              top: 16,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton.filledTonal(
-                    onPressed:
-                        _cameras.length < 2 ||
-                            _isInitializing ||
-                            _isCountingDown ||
-                            _isTakingPicture
-                        ? null
-                        : _switchCamera,
-                    icon: const Icon(Icons.flip_camera_ios),
-                    tooltip: 'Switch camera',
+          ),
+          Positioned(
+            right: 16,
+            top: 16,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton.filledTonal(
+                  onPressed:
+                      _cameras.length < 2 ||
+                          _isInitializing ||
+                          _isCountingDown ||
+                          _isTakingPicture
+                      ? null
+                      : _switchCamera,
+                  icon: const Icon(Icons.flip_camera_ios),
+                  tooltip: 'Switch camera',
+                ),
+                IconButton.filledTonal(
+                  onPressed:
+                      _isInitializing || _isCountingDown || _isTakingPicture
+                      ? null
+                      : _toggleFlash,
+                  icon: Icon(_isFlashOn ? Icons.flash_on : Icons.flash_off),
+                  tooltip: _isFlashOn ? 'Turn flash off' : 'Turn flash on',
+                ),
+                IconButton.filledTonal(
+                  onPressed: _isCountingDown || _isTakingPicture
+                      ? null
+                      : _showCountdownSettings,
+                  icon: Text(
+                    '${_countdownSeconds}s',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
-                  IconButton.filledTonal(
-                    onPressed:
-                        _isInitializing || _isCountingDown || _isTakingPicture
-                        ? null
-                        : _toggleFlash,
-                    icon: Icon(_isFlashOn ? Icons.flash_on : Icons.flash_off),
-                    tooltip: _isFlashOn ? 'Turn flash off' : 'Turn flash on',
+                  tooltip: 'Countdown seconds',
+                ),
+                IconButton.filledTonal(
+                  onPressed: _isCountingDown || _isTakingPicture
+                      ? null
+                      : _showCaptureModeSettings,
+                  icon: Text(
+                    _captureCount == 1 ? '1x' : '${_captureCount}x',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
-                  IconButton.filledTonal(
-                    onPressed: _isCountingDown || _isTakingPicture
-                        ? null
-                        : _showCountdownSettings,
-                    icon: Text(
-                      '${_countdownSeconds}s',
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                    tooltip: 'Countdown seconds',
-                  ),
-                  IconButton.filledTonal(
-                    onPressed: _isCountingDown || _isTakingPicture
-                        ? null
-                        : _showCaptureModeSettings,
-                    icon: Text(
-                      _captureCount == 1 ? '1x' : '${_captureCount}x',
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                    tooltip: 'Capture mode',
-                  ),
-                ],
-              ),
+                  tooltip: 'Capture mode',
+                ),
+              ],
             ),
-            Positioned(
-              left: 16,
-              right: 16,
-              bottom: 102,
-              child: _buildStatusBar(),
-            ),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 22,
-              child: Center(child: _buildCaptureButton()),
-            ),
-            if (_isCountingDown)
-              Positioned.fill(
-                child: ColoredBox(
-                  color: Colors.black45,
-                  child: Center(
-                    child: Text(
-                      '$_countdown',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 96,
-                        fontWeight: FontWeight.bold,
-                      ),
+          ),
+          Positioned(
+            left: 16,
+            right: 16,
+            bottom: 102,
+            child: _buildStatusBar(),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 22,
+            child: Center(child: _buildCaptureButton()),
+          ),
+          if (_isCountingDown)
+            Positioned.fill(
+              child: ColoredBox(
+                color: Colors.black45,
+                child: Center(
+                  child: Text(
+                    '$_countdown',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 96,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
               ),
-            if (_isTakingPicture)
-              const Positioned.fill(
-                child: ColoredBox(
-                  color: Colors.black26,
-                  child: Center(child: CircularProgressIndicator()),
-                ),
+            ),
+          if (_isTakingPicture)
+            const Positioned.fill(
+              child: ColoredBox(
+                color: Colors.black26,
+                child: Center(child: CircularProgressIndicator()),
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }
