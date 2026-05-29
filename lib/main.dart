@@ -83,30 +83,8 @@ class _MyAppState extends State<MyApp> {
       ],
       child: MaterialApp.router(
         debugShowCheckedModeBanner: false,
-        theme: FlexThemeData.light(
-          scheme: FlexScheme.shadOrange,
-          useMaterial3: true,
-          visualDensity: FlexColorScheme.comfortablePlatformDensity,
-          subThemesData: const FlexSubThemesData(
-            appBarScrolledUnderElevation: 0,
-            appBarCenterTitle: true,
-            inputDecoratorBorderType: FlexInputBorderType.outline,
-            inputDecoratorRadius: 14,
-            switchSchemeColor: SchemeColor.primary,
-          ),
-        ),
-        darkTheme: FlexThemeData.dark(
-          scheme: FlexScheme.shadOrange,
-          useMaterial3: true,
-          visualDensity: FlexColorScheme.comfortablePlatformDensity,
-          subThemesData: const FlexSubThemesData(
-            appBarScrolledUnderElevation: 0,
-            appBarCenterTitle: true,
-            inputDecoratorBorderType: FlexInputBorderType.outline,
-            inputDecoratorRadius: 14,
-            switchSchemeColor: SchemeColor.primary,
-          ),
-        ),
+        theme: FlexThemeData.light(scheme: FlexScheme.shadOrange),
+        darkTheme: FlexThemeData.dark(scheme: FlexScheme.shadOrange),
         themeMode: ThemeMode.system,
         routerConfig: AppRoutes.router,
         localizationsDelegates: [

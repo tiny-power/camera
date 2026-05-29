@@ -1,4 +1,3 @@
-// ignore_for_file: use_build_context_synchronously, deprecated_member_use
 import 'dart:async';
 import 'dart:io';
 
@@ -27,9 +26,7 @@ class _HomePageState extends State<HomePage>
   StreamSubscription<dynamic>? _clapSubscription;
   Timer? _countdownTimer;
   String? _cameraError;
-  String? _soundError;
-  String? _lastPhotoPath;
-  String? _lastClapLabel;
+  String? _activeSettingsPanel;
   bool _isInitializing = false;
   bool _isListening = false;
   bool _isCountingDown = false;
@@ -39,7 +36,6 @@ class _HomePageState extends State<HomePage>
   int _countdownSeconds = 3;
   int _captureCount = 1;
   double _ambientDecibel = 0;
-  double _latestDecibel = 0;
   DateTime? _lastTriggerAt;
 
   static const List<int> _countdownOptions = [3, 5, 10, 15, 20, 30];
@@ -226,101 +222,38 @@ class _HomePageState extends State<HomePage>
     }
   }
 
-  Future<void> _showCountdownSettings() async {
+  void _showCountdownSettings() {
     if (_isCountingDown || _isTakingPicture) return;
 
-    final selectedSeconds = await showModalBottomSheet<int>(
-      context: context,
-      backgroundColor: const Color(0xFF18182A),
-      showDragHandle: true,
-      builder: (context) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 18),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Countdown',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: [
-                    for (final seconds in _countdownOptions)
-                      ChoiceChip(
-                        selected: seconds == _countdownSeconds,
-                        label: Text('${seconds}s'),
-                        onSelected: (_) => Navigator.of(context).pop(seconds),
-                      ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-
-    if (selectedSeconds == null || !mounted) return;
     setState(() {
-      _countdownSeconds = selectedSeconds;
-      _countdown = selectedSeconds;
+      _activeSettingsPanel = _activeSettingsPanel == 'countdown'
+          ? null
+          : 'countdown';
     });
   }
 
-  Future<void> _showCaptureModeSettings() async {
+  void _showCaptureModeSettings() {
     if (_isCountingDown || _isTakingPicture) return;
 
-    final selectedCount = await showModalBottomSheet<int>(
-      context: context,
-      backgroundColor: const Color(0xFF18182A),
-      showDragHandle: true,
-      builder: (context) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 18),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Capture mode',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: [
-                    for (final option in _captureModeOptions.entries)
-                      ChoiceChip(
-                        selected: option.value == _captureCount,
-                        label: Text(option.key),
-                        onSelected: (_) =>
-                            Navigator.of(context).pop(option.value),
-                      ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-
-    if (selectedCount == null || !mounted) return;
     setState(() {
-      _captureCount = selectedCount;
+      _activeSettingsPanel = _activeSettingsPanel == 'capture'
+          ? null
+          : 'capture';
+    });
+  }
+
+  void _selectCountdownSeconds(int seconds) {
+    setState(() {
+      _countdownSeconds = seconds;
+      _countdown = seconds;
+      _activeSettingsPanel = null;
+    });
+  }
+
+  void _selectCaptureCount(int count) {
+    setState(() {
+      _captureCount = count;
+      _activeSettingsPanel = null;
     });
   }
 
@@ -332,7 +265,7 @@ class _HomePageState extends State<HomePage>
       if (!status.isGranted) {
         if (!mounted) return;
         setState(() {
-          _soundError =
+          _cameraError =
               'Microphone permission is required for hands-free photos.';
         });
         return;
@@ -352,13 +285,13 @@ class _HomePageState extends State<HomePage>
       if (!mounted) return;
       setState(() {
         _isListening = true;
-        _soundError = null;
+        _cameraError = null;
       });
     } catch (error) {
       if (!mounted) return;
       setState(() {
         _isListening = false;
-        _soundError = error.toString();
+        _cameraError = error.toString();
       });
     }
   }
@@ -392,10 +325,9 @@ class _HomePageState extends State<HomePage>
       final label = event['label']?.toString() ?? 'clapping';
       final confidence = event['confidence'];
       setState(() {
-        _lastClapLabel = confidence is num
+        _cameraError = confidence is num
             ? '$label ${(confidence * 100).toStringAsFixed(0)}%'
             : label;
-        _soundError = null;
       });
     }
     _startCountdown();
@@ -412,7 +344,6 @@ class _HomePageState extends State<HomePage>
 
     if (!mounted) return;
     setState(() {
-      _latestDecibel = decibel;
       _ambientDecibel = ambient;
     });
 
@@ -424,7 +355,7 @@ class _HomePageState extends State<HomePage>
   void _handleNoiseError(Object error) {
     if (!mounted) return;
     setState(() {
-      _soundError = error.toString();
+      _cameraError = error.toString();
       _isListening = false;
     });
   }
@@ -444,6 +375,7 @@ class _HomePageState extends State<HomePage>
     setState(() {
       _countdown = _countdownSeconds;
       _isCountingDown = true;
+      _activeSettingsPanel = null;
     });
     _playCountdownSound(isFinal: false);
 
@@ -501,7 +433,6 @@ class _HomePageState extends State<HomePage>
       if (!mounted) return;
 
       setState(() {
-        _lastPhotoPath = imagePaths.last;
         _isTakingPicture = false;
       });
       context.push('/photo-captured', extra: imagePaths);
@@ -528,57 +459,73 @@ class _HomePageState extends State<HomePage>
           Positioned.fill(child: _buildCameraView()),
           Positioned(
             left: 16,
-            top: 16,
-            child: IconButton.filledTonal(
-              onPressed: () => context.push('/record'),
-              icon: const Icon(Icons.history),
-              tooltip: 'Operation Log',
-            ),
-          ),
-          Positioned(
             right: 16,
-            top: 16,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+            top: 60,
+            child: Row(
+              mainAxisAlignment: .spaceBetween,
               children: [
-                IconButton.filledTonal(
-                  onPressed:
-                      _cameras.length < 2 ||
-                          _isInitializing ||
-                          _isCountingDown ||
-                          _isTakingPicture
-                      ? null
-                      : _switchCamera,
-                  icon: const Icon(Icons.flip_camera_ios),
-                  tooltip: 'Switch camera',
-                ),
-                IconButton.filledTonal(
-                  onPressed:
-                      _isInitializing || _isCountingDown || _isTakingPicture
+                GestureDetector(
+                  onTap: _isInitializing || _isCountingDown || _isTakingPicture
                       ? null
                       : _toggleFlash,
-                  icon: Icon(_isFlashOn ? Icons.flash_on : Icons.flash_off),
-                  tooltip: _isFlashOn ? 'Turn flash off' : 'Turn flash on',
+                  child: Container(
+                    padding: .only(top: 8, bottom: 8, left: 12, right: 12),
+                    height: 40,
+                    decoration: BoxDecoration(
+                      borderRadius: .circular(40),
+                      color: Colors.white,
+                    ),
+                    child: Icon(_isFlashOn ? Icons.flash_on : Icons.flash_off),
+                  ),
                 ),
-                IconButton.filledTonal(
-                  onPressed: _isCountingDown || _isTakingPicture
+                GestureDetector(
+                  onTap: _isCountingDown || _isTakingPicture
                       ? null
                       : _showCountdownSettings,
-                  icon: Text(
-                    '${_countdownSeconds}s',
-                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  child: Container(
+                    padding: .only(top: 8, bottom: 8, left: 12, right: 12),
+                    height: 40,
+                    decoration: BoxDecoration(
+                      borderRadius: .circular(40),
+                      color: Colors.white,
+                    ),
+                    child: Row(
+                      spacing: 4,
+                      children: [
+                        const Icon(Icons.timer, size: 18),
+                        Text(
+                          '${_countdownSeconds}s',
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                      ],
+                    ),
                   ),
-                  tooltip: 'Countdown seconds',
                 ),
-                IconButton.filledTonal(
-                  onPressed: _isCountingDown || _isTakingPicture
+                GestureDetector(
+                  onTap: _isInitializing || _isCountingDown || _isTakingPicture
                       ? null
-                      : _showCaptureModeSettings,
-                  icon: Text(
-                    _captureCount == 1 ? '1x' : '${_captureCount}x',
-                    style: const TextStyle(fontWeight: FontWeight.w700),
+                      : _toggleFlash,
+                  child: Container(
+                    padding: .only(top: 8, bottom: 8, left: 12, right: 12),
+                    height: 40,
+                    decoration: BoxDecoration(
+                      borderRadius: .circular(40),
+                      color: Colors.white,
+                    ),
+                    child: Icon(Icons.screen_rotation),
                   ),
-                  tooltip: 'Capture mode',
+                ),
+                GestureDetector(
+                  onTap: () => {},
+                  child: Container(
+                    padding: .only(top: 8, bottom: 8, left: 12, right: 12),
+                    height: 40,
+                    decoration: BoxDecoration(
+                      borderRadius: .circular(40),
+                      color: Colors.white,
+                    ),
+                    child: const Icon(Icons.settings),
+                  ),
                 ),
               ],
             ),
@@ -586,13 +533,96 @@ class _HomePageState extends State<HomePage>
           Positioned(
             left: 16,
             right: 16,
-            bottom: 102,
-            child: _buildStatusBar(),
+            bottom: 60,
+            child: Row(
+              mainAxisAlignment: .spaceBetween,
+              children: [
+                GestureDetector(
+                  onTap: _isListening
+                      ? _stopSoundDetection
+                      : _startSoundDetection,
+                  child: Container(
+                    padding: .only(top: 8, bottom: 8, left: 12, right: 12),
+                    height: 40,
+                    decoration: BoxDecoration(
+                      borderRadius: .circular(40),
+                      color: Colors.white,
+                    ),
+                    child: Row(
+                      spacing: 4,
+                      children: [
+                        Icon(
+                          _isListening
+                              ? Icons.mic_none_outlined
+                              : Icons.mic_off_outlined,
+                        ),
+                        Text(
+                          _isListening ? 'Listening...' : 'Clap Mode',
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                GestureDetector(
+                  onTap: _isCountingDown || _isTakingPicture
+                      ? null
+                      : _showCaptureModeSettings,
+                  child: Container(
+                    padding: .only(top: 8, bottom: 8, left: 12, right: 12),
+                    height: 40,
+                    decoration: BoxDecoration(
+                      borderRadius: .circular(40),
+                      color: Colors.white,
+                    ),
+                    child: Row(
+                      spacing: 4,
+                      children: [
+                        const Icon(Icons.photo_camera_outlined, size: 18),
+                        Text(
+                          _captureCount == 1
+                              ? 'Single'
+                              : 'Burst $_captureCount',
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                GestureDetector(
+                  onTap:
+                      _cameras.length < 2 ||
+                          _isInitializing ||
+                          _isCountingDown ||
+                          _isTakingPicture
+                      ? null
+                      : _switchCamera,
+                  child: Container(
+                    padding: .only(top: 8, bottom: 8, left: 12, right: 12),
+                    height: 40,
+                    decoration: BoxDecoration(
+                      borderRadius: .circular(40),
+                      color: Colors.white,
+                    ),
+                    child: Row(
+                      spacing: 4,
+                      children: [
+                        const Icon(Icons.cameraswitch_outlined, size: 18),
+                        Text(
+                          'Front',
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
           Positioned(
             left: 0,
             right: 0,
-            bottom: 22,
+            bottom: 146,
             child: Center(child: _buildCaptureButton()),
           ),
           if (_isCountingDown)
@@ -618,7 +648,91 @@ class _HomePageState extends State<HomePage>
                 child: Center(child: CircularProgressIndicator()),
               ),
             ),
+          if (_activeSettingsPanel != null)
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onTap: () {
+                  setState(() {
+                    _activeSettingsPanel = null;
+                  });
+                },
+              ),
+            ),
+          if (_activeSettingsPanel != null)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: _buildSettingsPanel(),
+            ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSettingsPanel() {
+    final isCountdownPanel = _activeSettingsPanel == 'countdown';
+    final title = isCountdownPanel ? 'Countdown' : 'Capture mode';
+
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        color: Color(0xFF18182A),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Center(
+                child: Container(
+                  width: 42,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: isCountdownPanel
+                    ? [
+                        for (final seconds in _countdownOptions)
+                          ChoiceChip(
+                            selected: seconds == _countdownSeconds,
+                            label: Text('${seconds}s'),
+                            onSelected: (_) => _selectCountdownSeconds(seconds),
+                          ),
+                      ]
+                    : [
+                        for (final option in _captureModeOptions.entries)
+                          ChoiceChip(
+                            selected: option.value == _captureCount,
+                            label: Text(option.key),
+                            onSelected: (_) =>
+                                _selectCaptureCount(option.value),
+                          ),
+                      ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -638,11 +752,11 @@ class _HomePageState extends State<HomePage>
       child: DecoratedBox(
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          border: Border.all(color: Colors.white, width: 4),
+          border: Border.all(color: Colors.white, width: 5),
           color: Colors.black.withValues(alpha: 0.18),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(5),
+          padding: const EdgeInsets.all(7),
           child: FilledButton(
             onPressed: canCapture ? _startCountdown : null,
             style: FilledButton.styleFrom(
@@ -678,73 +792,5 @@ class _HomePageState extends State<HomePage>
     }
 
     return CameraPreview(controller);
-  }
-
-  Widget _buildStatusBar() {
-    final statusText = _isCountingDown
-        ? 'Countdown $_countdown'
-        : _isTakingPicture
-        ? 'Taking photo...'
-        : _isListening
-        ? Platform.isIOS
-              ? 'Listening with iOS clap recognition'
-              : 'Listening for clap'
-        : 'Microphone off';
-    final detailText =
-        _soundError ??
-        _lastClapLabel ??
-        _lastPhotoPath ??
-        'Peak ${_latestDecibel.toStringAsFixed(1)} dB';
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.62),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        child: Row(
-          children: [
-            Icon(
-              _isListening ? Icons.mic : Icons.mic_off,
-              color: Colors.white,
-              size: 20,
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    statusText,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  Text(
-                    detailText,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Colors.white70, fontSize: 12),
-                  ),
-                ],
-              ),
-            ),
-            IconButton(
-              onPressed: _isListening
-                  ? _stopSoundDetection
-                  : _startSoundDetection,
-              icon: Icon(_isListening ? Icons.pause : Icons.play_arrow),
-              color: Colors.white,
-              tooltip: _isListening ? 'Stop listening' : 'Start listening',
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }

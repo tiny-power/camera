@@ -93,7 +93,7 @@ class _PhotoCapturedPageState extends State<PhotoCapturedPage> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Column(
               children: [
-                const SizedBox(height: 66),
+                const SizedBox(height: 30),
                 Text(
                   widget.imagePaths.length == 1
                       ? 'Photo Captured'
@@ -107,7 +107,7 @@ class _PhotoCapturedPageState extends State<PhotoCapturedPage> {
                     letterSpacing: 0,
                   ),
                 ),
-                const SizedBox(height: 76),
+                const SizedBox(height: 30),
                 Expanded(
                   child: LayoutBuilder(
                     builder: (context, constraints) {
@@ -213,7 +213,6 @@ class _PhotoCapturedPageState extends State<PhotoCapturedPage> {
     return Row(
       children: [
         Expanded(
-          flex: 1,
           child: SizedBox(
             height: 62,
             child: OutlinedButton.icon(
@@ -238,7 +237,6 @@ class _PhotoCapturedPageState extends State<PhotoCapturedPage> {
         ),
         const SizedBox(width: 12),
         Expanded(
-          flex: 2,
           child: SizedBox(
             height: 62,
             child: FilledButton.icon(
