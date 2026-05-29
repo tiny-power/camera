@@ -144,16 +144,18 @@ class _PermissionsPageState extends State<PermissionsPage>
     required String subtitle,
     required bool isGranted,
   }) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Container(
       padding: .only(top: 16, bottom: 16, left: 18, right: 18),
       decoration: BoxDecoration(
         borderRadius: .circular(18),
-        color: const Color(0xFF102B59).withValues(alpha: 0.68),
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.72),
       ),
       child: Row(
         spacing: 12,
         children: [
-          Icon(icon, color: const Color(0xFFFF7D1B), size: 28),
+          Icon(icon, color: colorScheme.primary, size: 28),
           Expanded(
             child: Column(
               mainAxisAlignment: .center,
@@ -161,18 +163,18 @@ class _PermissionsPageState extends State<PermissionsPage>
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
-                    color: Color(0xFFF8F8FB),
+                  style: TextStyle(
+                    color: colorScheme.onSurface,
                     fontSize: 18,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: .w800,
                   ),
                 ),
                 Text(
                   subtitle,
-                  style: const TextStyle(
-                    color: Color(0xFFC6C3CA),
+                  style: TextStyle(
+                    color: colorScheme.onSurfaceVariant,
                     fontSize: 14,
-                    fontWeight: FontWeight.w400,
+                    fontWeight: .w400,
                   ),
                 ),
               ],
@@ -185,33 +187,31 @@ class _PermissionsPageState extends State<PermissionsPage>
   }
 
   Widget _buildPermissionStatusIcon(bool isGranted) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     if (isGranted) {
-      return const Icon(Icons.check_circle, color: Color(0xFF35DE7D), size: 30);
-    } else {
-      return const Icon(
-        Icons.circle_outlined,
-        color: Color(0xFFC6C3CA),
-        size: 30,
-      );
+      return Icon(Icons.check_circle, color: colorScheme.tertiary, size: 30);
     }
+
+    return Icon(Icons.circle_outlined, color: colorScheme.outline, size: 30);
   }
 
   Widget _buildContinueButton({required VoidCallback onPressed}) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return SizedBox(
       width: double.infinity,
       height: 64,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          borderRadius: .circular(12),
-          color: Color(0xFFFF831C),
-        ),
+      child: Material(
+        color: colorScheme.primary,
+        borderRadius: .circular(12),
         child: InkWell(
-          borderRadius: .circular(26),
+          borderRadius: .circular(12),
           onTap: onPressed,
           child: Center(
-            child: const Text(
+            child: Text(
               'Continue',
-              style: TextStyle(color: Colors.white, fontSize: 20),
+              style: TextStyle(color: colorScheme.onPrimary, fontSize: 20),
             ),
           ),
         ),
@@ -221,82 +221,80 @@ class _PermissionsPageState extends State<PermissionsPage>
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(color: Color(0xFF232440)),
-        child: SafeArea(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              return SingleChildScrollView(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                  child: Center(
-                    child: Padding(
-                      padding: .symmetric(horizontal: 24, vertical: 24),
-                      child: Column(
-                        children: [
-                          Container(
-                            width: 96,
-                            height: 96,
-                            decoration: const BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Color(0xFF412A2B),
-                            ),
-                            child: const Center(
-                              child: Icon(
-                                Icons.photo_camera,
-                                color: Color(0xFFFF7D1B),
-                                size: 48,
-                              ),
-                            ),
+      backgroundColor: colorScheme.surface,
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: Center(
+                  child: Padding(
+                    padding: .symmetric(horizontal: 24, vertical: 24),
+                    child: Column(
+                      mainAxisSize: .min,
+                      children: [
+                        Container(
+                          width: 96,
+                          height: 96,
+                          alignment: .center,
+                          decoration: BoxDecoration(
+                            shape: .circle,
+                            color: colorScheme.primary.withValues(alpha: 0.3),
                           ),
-                          SizedBox(height: 24),
-                          const Text(
-                            'Permissions Needed',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: Color(0xFFF8F8FB),
-                              fontSize: 26,
-                              fontWeight: FontWeight.w800,
-                            ),
+                          child: Icon(
+                            Icons.photo_camera,
+                            color: colorScheme.primary,
+                            size: 48,
                           ),
-                          const SizedBox(height: 20),
-                          Text(
-                            '${S.current.app_name} needs access to your\ncamera and microphone to take hands-\nfree photos.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: Color(0xFFC6C3CA),
-                              fontSize: 18,
-                              fontWeight: FontWeight.w400,
-                              letterSpacing: 0,
-                            ),
+                        ),
+                        SizedBox(height: 24),
+                        Text(
+                          'Permissions Needed',
+                          textAlign: .center,
+                          style: TextStyle(
+                            color: colorScheme.onSurface,
+                            fontSize: 26,
+                            fontWeight: .w800,
                           ),
-                          SizedBox(height: 24),
-                          _buildPermissionRow(
-                            icon: Icons.photo_camera,
-                            title: 'Camera',
-                            subtitle: 'To take photos',
-                            isGranted: _isPermissionReady(_cameraStatus),
+                        ),
+                        const SizedBox(height: 20),
+                        Text(
+                          '${S.current.app_name} needs access to your\ncamera and microphone to take hands-\nfree photos.',
+                          textAlign: .center,
+                          style: TextStyle(
+                            color: colorScheme.onSurfaceVariant,
+                            fontSize: 18,
+                            fontWeight: .w400,
+                            letterSpacing: 0,
                           ),
-                          const SizedBox(height: 24),
-                          _buildPermissionRow(
-                            icon: Icons.mic,
-                            title: 'Microphone',
-                            subtitle: 'To detect claps',
-                            isGranted: _isPermissionReady(_microphoneStatus),
-                          ),
-                          SizedBox(height: 24),
-                          _buildContinueButton(onPressed: _requestPermissions),
-                        ],
-                      ),
+                        ),
+                        SizedBox(height: 24),
+                        _buildPermissionRow(
+                          icon: Icons.photo_camera,
+                          title: 'Camera',
+                          subtitle: 'To take photos',
+                          isGranted: _isPermissionReady(_cameraStatus),
+                        ),
+                        const SizedBox(height: 24),
+                        _buildPermissionRow(
+                          icon: Icons.mic,
+                          title: 'Microphone',
+                          subtitle: 'To detect claps',
+                          isGranted: _isPermissionReady(_microphoneStatus),
+                        ),
+                        SizedBox(height: 24),
+                        _buildContinueButton(onPressed: _requestPermissions),
+                      ],
                     ),
                   ),
                 ),
-              );
-            },
-          ),
+              ),
+            );
+          },
         ),
       ),
     );
