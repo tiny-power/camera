@@ -21,10 +21,6 @@ class _PhotoCapturedPageState extends State<PhotoCapturedPage> {
   bool _isSaved = false;
   String? _savedMessage;
 
-  static const _backgroundColor = Color(0xFF18182A);
-  static const _orangeColor = Color(0xFFF78433);
-  static const _outlineColor = Color(0xFF5D5C72);
-
   Future<void> _retake() async {
     if (!_isSaved) {
       for (final imagePath in widget.imagePaths) {
@@ -79,15 +75,17 @@ class _PhotoCapturedPageState extends State<PhotoCapturedPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
-        statusBarColor: _backgroundColor,
+      value: SystemUiOverlayStyle(
+        statusBarColor: colorScheme.surface,
         statusBarIconBrightness: Brightness.light,
         statusBarBrightness: Brightness.dark,
-        systemNavigationBarColor: _backgroundColor,
+        systemNavigationBarColor: colorScheme.surface,
       ),
       child: Scaffold(
-        backgroundColor: _backgroundColor,
+        backgroundColor: colorScheme.surface,
         body: SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -99,8 +97,8 @@ class _PhotoCapturedPageState extends State<PhotoCapturedPage> {
                       ? 'Photo Captured'
                       : '${widget.imagePaths.length} Photos Captured',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: colorScheme.onSurface,
                     fontSize: 24,
                     height: 1.15,
                     fontWeight: FontWeight.w700,
@@ -123,7 +121,7 @@ class _PhotoCapturedPageState extends State<PhotoCapturedPage> {
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(16),
                               child: ColoredBox(
-                                color: Colors.black,
+                                color: colorScheme.surfaceContainerHighest,
                                 child: PageView.builder(
                                   itemCount: widget.imagePaths.length,
                                   itemBuilder: (context, index) {
@@ -135,11 +133,12 @@ class _PhotoCapturedPageState extends State<PhotoCapturedPage> {
                                           fit: BoxFit.contain,
                                           errorBuilder:
                                               (context, error, stackTrace) {
-                                                return const Center(
+                                                return Center(
                                                   child: Text(
                                                     'Photo unavailable',
                                                     style: TextStyle(
-                                                      color: Colors.white,
+                                                      color:
+                                                          colorScheme.onSurface,
                                                     ),
                                                   ),
                                                 );
@@ -151,9 +150,8 @@ class _PhotoCapturedPageState extends State<PhotoCapturedPage> {
                                             bottom: 12,
                                             child: DecoratedBox(
                                               decoration: BoxDecoration(
-                                                color: Colors.black.withValues(
-                                                  alpha: 0.58,
-                                                ),
+                                                color: colorScheme.scrim
+                                                    .withValues(alpha: 0.58),
                                                 borderRadius:
                                                     BorderRadius.circular(14),
                                               ),
@@ -165,8 +163,9 @@ class _PhotoCapturedPageState extends State<PhotoCapturedPage> {
                                                     ),
                                                 child: Text(
                                                   '${index + 1}/${widget.imagePaths.length}',
-                                                  style: const TextStyle(
-                                                    color: Colors.white,
+                                                  style: TextStyle(
+                                                    color: colorScheme
+                                                        .onInverseSurface,
                                                     fontSize: 12,
                                                     fontWeight: FontWeight.w700,
                                                   ),
@@ -189,8 +188,8 @@ class _PhotoCapturedPageState extends State<PhotoCapturedPage> {
                               _savedMessage!,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white54,
+                              style: TextStyle(
+                                color: colorScheme.onSurfaceVariant,
                                 fontSize: 11,
                               ),
                             ),
@@ -210,6 +209,8 @@ class _PhotoCapturedPageState extends State<PhotoCapturedPage> {
   }
 
   Widget _buildActions() {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Row(
       children: [
         Expanded(
@@ -220,9 +221,11 @@ class _PhotoCapturedPageState extends State<PhotoCapturedPage> {
               icon: const Icon(Icons.delete_outline, size: 25),
               label: const Text('Retake'),
               style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.white,
-                disabledForegroundColor: Colors.white38,
-                side: const BorderSide(color: _outlineColor, width: 1.4),
+                foregroundColor: colorScheme.onSurface,
+                disabledForegroundColor: colorScheme.onSurface.withValues(
+                  alpha: 0.38,
+                ),
+                side: BorderSide(color: colorScheme.outline, width: 1.4),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(18),
                 ),
@@ -242,21 +245,22 @@ class _PhotoCapturedPageState extends State<PhotoCapturedPage> {
             child: FilledButton.icon(
               onPressed: _isSaving || _isSaved ? null : _savePhoto,
               icon: _isSaving
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 22,
                       height: 22,
                       child: CircularProgressIndicator(
                         strokeWidth: 2.4,
-                        color: Colors.white,
+                        color: colorScheme.onPrimary,
                       ),
                     )
                   : const Icon(Icons.file_download_outlined, size: 25),
               label: Text(_isSaved ? 'Saved' : 'Save'),
               style: FilledButton.styleFrom(
-                backgroundColor: _orangeColor,
-                disabledBackgroundColor: _orangeColor.withValues(alpha: 0.72),
-                foregroundColor: Colors.white,
-                disabledForegroundColor: Colors.white,
+                backgroundColor: colorScheme.surfaceContainerHighest,
+                disabledBackgroundColor: colorScheme.surfaceContainerHighest
+                    .withValues(alpha: 0.72),
+                foregroundColor: colorScheme.onSurfaceVariant,
+                disabledForegroundColor: colorScheme.onSurfaceVariant,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(18),
                 ),

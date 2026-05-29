@@ -32,6 +32,7 @@ class _HomePageState extends State<HomePage>
   bool _isCountingDown = false;
   bool _isTakingPicture = false;
   bool _isFlashOn = false;
+  bool _resumeListeningAfterCapture = false;
   int _countdown = 3;
   int _countdownSeconds = 3;
   int _captureCount = 1;
@@ -51,6 +52,9 @@ class _HomePageState extends State<HomePage>
   static const Duration _triggerCooldown = Duration(seconds: 4);
   static const EventChannel _clapEventChannel = EventChannel(
     'hand_camera/clap_events',
+  );
+  static const MethodChannel _countdownSoundChannel = MethodChannel(
+    'hand_camera/countdown_sound',
   );
 
   @override
@@ -80,7 +84,10 @@ class _HomePageState extends State<HomePage>
   @override
   void didPopNext() {
     _initializeCamera();
-    _startSoundDetection();
+    if (_resumeListeningAfterCapture) {
+      _resumeListeningAfterCapture = false;
+      _startSoundDetection();
+    }
   }
 
   @override
@@ -193,6 +200,18 @@ class _HomePageState extends State<HomePage>
     });
     await _disposeCamera();
     await _initializeCamera(useSelectedCamera: true);
+  }
+
+  String get _cameraDirectionLabel {
+    if (_cameras.isEmpty || _selectedCameraIndex >= _cameras.length) {
+      return 'Back';
+    }
+
+    return switch (_cameras[_selectedCameraIndex].lensDirection) {
+      CameraLensDirection.front => 'Front',
+      CameraLensDirection.back => 'Back',
+      _ => 'Camera',
+    };
   }
 
   Future<void> _toggleFlash() async {
@@ -321,15 +340,6 @@ class _HomePageState extends State<HomePage>
 
   void _handleIosClapEvent(dynamic event) {
     if (!mounted) return;
-    if (event is Map) {
-      final label = event['label']?.toString() ?? 'clapping';
-      final confidence = event['confidence'];
-      setState(() {
-        _cameraError = confidence is num
-            ? '$label ${(confidence * 100).toStringAsFixed(0)}%'
-            : label;
-      });
-    }
     _startCountdown();
   }
 
@@ -360,7 +370,7 @@ class _HomePageState extends State<HomePage>
     });
   }
 
-  void _startCountdown() {
+  Future<void> _startCountdown() async {
     if (_isCountingDown || _isTakingPicture) return;
 
     final now = DateTime.now();
@@ -372,6 +382,12 @@ class _HomePageState extends State<HomePage>
 
     _lastTriggerAt = now;
     _countdownTimer?.cancel();
+    _resumeListeningAfterCapture = _isListening;
+    if (_isListening) {
+      await _stopSoundDetection();
+    }
+    if (!mounted) return;
+
     setState(() {
       _countdown = _countdownSeconds;
       _isCountingDown = true;
@@ -403,6 +419,15 @@ class _HomePageState extends State<HomePage>
   }
 
   Future<void> _playCountdownSound({required bool isFinal}) async {
+    if (Platform.isIOS) {
+      try {
+        await _countdownSoundChannel.invokeMethod<void>('play', {
+          'isFinal': isFinal,
+        });
+        return;
+      } catch (_) {}
+    }
+
     await SystemSound.play(
       isFinal ? SystemSoundType.alert : SystemSoundType.click,
     );
@@ -442,17 +467,29 @@ class _HomePageState extends State<HomePage>
         _cameraError = error.description ?? error.code;
         _isTakingPicture = false;
       });
+      if (_resumeListeningAfterCapture) {
+        _resumeListeningAfterCapture = false;
+        _startSoundDetection();
+      }
     } catch (error) {
       if (!mounted) return;
       setState(() {
         _cameraError = error.toString();
         _isTakingPicture = false;
       });
+      if (_resumeListeningAfterCapture) {
+        _resumeListeningAfterCapture = false;
+        _startSoundDetection();
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final buttonBackground = colorScheme.scrim.withValues(alpha: 0.42);
+    final buttonForeground = colorScheme.onInverseSurface;
+
     return Scaffold(
       body: Stack(
         children: [
@@ -473,9 +510,12 @@ class _HomePageState extends State<HomePage>
                     height: 40,
                     decoration: BoxDecoration(
                       borderRadius: .circular(40),
-                      color: Colors.white,
+                      color: buttonBackground,
                     ),
-                    child: Icon(_isFlashOn ? Icons.flash_on : Icons.flash_off),
+                    child: Icon(
+                      _isFlashOn ? Icons.flash_on : Icons.flash_off,
+                      color: buttonForeground,
+                    ),
                   ),
                 ),
                 GestureDetector(
@@ -487,15 +527,18 @@ class _HomePageState extends State<HomePage>
                     height: 40,
                     decoration: BoxDecoration(
                       borderRadius: .circular(40),
-                      color: Colors.white,
+                      color: buttonBackground,
                     ),
                     child: Row(
                       spacing: 4,
                       children: [
-                        const Icon(Icons.timer, size: 18),
+                        Icon(Icons.timer, size: 18, color: buttonForeground),
                         Text(
                           '${_countdownSeconds}s',
-                          style: const TextStyle(fontWeight: FontWeight.w700),
+                          style: TextStyle(
+                            color: buttonForeground,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ],
                     ),
@@ -510,9 +553,9 @@ class _HomePageState extends State<HomePage>
                     height: 40,
                     decoration: BoxDecoration(
                       borderRadius: .circular(40),
-                      color: Colors.white,
+                      color: buttonBackground,
                     ),
-                    child: Icon(Icons.screen_rotation),
+                    child: Icon(Icons.screen_rotation, color: buttonForeground),
                   ),
                 ),
                 GestureDetector(
@@ -522,9 +565,9 @@ class _HomePageState extends State<HomePage>
                     height: 40,
                     decoration: BoxDecoration(
                       borderRadius: .circular(40),
-                      color: Colors.white,
+                      color: buttonBackground,
                     ),
-                    child: const Icon(Icons.settings),
+                    child: Icon(Icons.settings, color: buttonForeground),
                   ),
                 ),
               ],
@@ -546,7 +589,7 @@ class _HomePageState extends State<HomePage>
                     height: 40,
                     decoration: BoxDecoration(
                       borderRadius: .circular(40),
-                      color: Colors.white,
+                      color: buttonBackground,
                     ),
                     child: Row(
                       spacing: 4,
@@ -555,10 +598,14 @@ class _HomePageState extends State<HomePage>
                           _isListening
                               ? Icons.mic_none_outlined
                               : Icons.mic_off_outlined,
+                          color: buttonForeground,
                         ),
                         Text(
                           _isListening ? 'Listening...' : 'Clap Mode',
-                          style: const TextStyle(fontWeight: FontWeight.w700),
+                          style: TextStyle(
+                            color: buttonForeground,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ],
                     ),
@@ -573,17 +620,24 @@ class _HomePageState extends State<HomePage>
                     height: 40,
                     decoration: BoxDecoration(
                       borderRadius: .circular(40),
-                      color: Colors.white,
+                      color: buttonBackground,
                     ),
                     child: Row(
                       spacing: 4,
                       children: [
-                        const Icon(Icons.photo_camera_outlined, size: 18),
+                        Icon(
+                          Icons.photo_camera_outlined,
+                          size: 18,
+                          color: buttonForeground,
+                        ),
                         Text(
                           _captureCount == 1
                               ? 'Single'
                               : 'Burst $_captureCount',
-                          style: const TextStyle(fontWeight: FontWeight.w700),
+                          style: TextStyle(
+                            color: buttonForeground,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ],
                     ),
@@ -602,15 +656,22 @@ class _HomePageState extends State<HomePage>
                     height: 40,
                     decoration: BoxDecoration(
                       borderRadius: .circular(40),
-                      color: Colors.white,
+                      color: buttonBackground,
                     ),
                     child: Row(
                       spacing: 4,
                       children: [
-                        const Icon(Icons.cameraswitch_outlined, size: 18),
+                        Icon(
+                          Icons.cameraswitch_outlined,
+                          size: 18,
+                          color: buttonForeground,
+                        ),
                         Text(
-                          'Front',
-                          style: const TextStyle(fontWeight: FontWeight.w700),
+                          _cameraDirectionLabel,
+                          style: TextStyle(
+                            color: buttonForeground,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ],
                     ),
@@ -628,12 +689,12 @@ class _HomePageState extends State<HomePage>
           if (_isCountingDown)
             Positioned.fill(
               child: ColoredBox(
-                color: Colors.black45,
+                color: colorScheme.scrim.withValues(alpha: 0.45),
                 child: Center(
                   child: Text(
                     '$_countdown',
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: colorScheme.onInverseSurface,
                       fontSize: 96,
                       fontWeight: FontWeight.bold,
                     ),
@@ -642,10 +703,10 @@ class _HomePageState extends State<HomePage>
               ),
             ),
           if (_isTakingPicture)
-            const Positioned.fill(
+            Positioned.fill(
               child: ColoredBox(
-                color: Colors.black26,
-                child: Center(child: CircularProgressIndicator()),
+                color: colorScheme.scrim.withValues(alpha: 0.26),
+                child: const Center(child: CircularProgressIndicator()),
               ),
             ),
           if (_activeSettingsPanel != null)
@@ -674,11 +735,12 @@ class _HomePageState extends State<HomePage>
   Widget _buildSettingsPanel() {
     final isCountdownPanel = _activeSettingsPanel == 'countdown';
     final title = isCountdownPanel ? 'Countdown' : 'Capture mode';
+    final colorScheme = Theme.of(context).colorScheme;
 
     return DecoratedBox(
-      decoration: const BoxDecoration(
-        color: Color(0xFF18182A),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: SafeArea(
         top: false,
@@ -693,7 +755,7 @@ class _HomePageState extends State<HomePage>
                   width: 42,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.white24,
+                    color: colorScheme.outlineVariant,
                     borderRadius: BorderRadius.circular(999),
                   ),
                 ),
@@ -701,8 +763,8 @@ class _HomePageState extends State<HomePage>
               const SizedBox(height: 14),
               Text(
                 title,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: colorScheme.onSurface,
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
                 ),
@@ -739,6 +801,7 @@ class _HomePageState extends State<HomePage>
 
   Widget _buildCaptureButton() {
     final controller = _cameraController;
+    final colorScheme = Theme.of(context).colorScheme;
     final canCapture =
         controller != null &&
         controller.value.isInitialized &&
@@ -752,8 +815,11 @@ class _HomePageState extends State<HomePage>
       child: DecoratedBox(
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          border: Border.all(color: Colors.white, width: 5),
-          color: Colors.black.withValues(alpha: 0.18),
+          border: Border.all(
+            color: colorScheme.surfaceContainerHighest,
+            width: 5,
+          ),
+          color: colorScheme.scrim.withValues(alpha: 0.18),
         ),
         child: Padding(
           padding: const EdgeInsets.all(7),
@@ -762,8 +828,9 @@ class _HomePageState extends State<HomePage>
             style: FilledButton.styleFrom(
               shape: const CircleBorder(),
               padding: EdgeInsets.zero,
-              backgroundColor: Colors.white,
-              disabledBackgroundColor: Colors.white54,
+              backgroundColor: colorScheme.surfaceContainerHighest,
+              disabledBackgroundColor: colorScheme.surfaceContainerHighest
+                  .withValues(alpha: 0.38),
             ),
             child: const SizedBox.shrink(),
           ),
@@ -781,7 +848,10 @@ class _HomePageState extends State<HomePage>
           child: Text(
             _cameraError!,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.white, fontSize: 16),
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface,
+              fontSize: 16,
+            ),
           ),
         ),
       );
@@ -791,6 +861,24 @@ class _HomePageState extends State<HomePage>
       return const Center(child: CircularProgressIndicator());
     }
 
-    return CameraPreview(controller);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final previewSize = controller.value.previewSize;
+        if (previewSize == null) {
+          return CameraPreview(controller);
+        }
+
+        final previewAspectRatio = previewSize.height / previewSize.width;
+        final screenAspectRatio = constraints.maxWidth / constraints.maxHeight;
+        final scale = previewAspectRatio / screenAspectRatio;
+
+        return ClipRect(
+          child: Transform.scale(
+            scale: scale < 1 ? 1 / scale : scale,
+            child: Center(child: CameraPreview(controller)),
+          ),
+        );
+      },
+    );
   }
 }

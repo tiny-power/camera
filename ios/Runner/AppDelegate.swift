@@ -1,6 +1,7 @@
 import Flutter
 import UIKit
 import AVFoundation
+import AudioToolbox
 import SoundAnalysis
 
 @main
@@ -18,6 +19,22 @@ import SoundAnalysis
         binaryMessenger: controller.binaryMessenger
       )
       clapEvents.setStreamHandler(clapStreamHandler)
+
+      let soundChannel = FlutterMethodChannel(
+        name: "hand_camera/countdown_sound",
+        binaryMessenger: controller.binaryMessenger
+      )
+      soundChannel.setMethodCallHandler { call, result in
+        guard call.method == "play" else {
+          result(FlutterMethodNotImplemented)
+          return
+        }
+
+        let arguments = call.arguments as? [String: Any]
+        let isFinal = arguments?["isFinal"] as? Bool ?? false
+        AudioServicesPlaySystemSound(isFinal ? 1117 : 1104)
+        result(nil)
+      }
     }
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
