@@ -6,7 +6,7 @@
         android:maxSdkVersion="29" />
 
     <application
-        android:label="Aperto"
+        android:label="Clapo"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon"
         android:requestLegacyExternalStorage="true">
