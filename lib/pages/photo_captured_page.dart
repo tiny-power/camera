@@ -247,10 +247,10 @@ class _PhotoCapturedPageState extends State<PhotoCapturedPage> {
                   : const Icon(Icons.file_download_outlined, size: 25),
               label: Text(_isSaved ? 'Saved' : 'Save'),
               style: FilledButton.styleFrom(
-                backgroundColor: colorScheme.surfaceContainerHighest,
+                backgroundColor: colorScheme.primary,
                 disabledBackgroundColor: colorScheme.surfaceContainerHighest
                     .withValues(alpha: 0.72),
-                foregroundColor: colorScheme.onSurfaceVariant,
+                foregroundColor: colorScheme.onPrimary,
                 disabledForegroundColor: colorScheme.onSurfaceVariant,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(18),

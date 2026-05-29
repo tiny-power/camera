@@ -211,7 +211,7 @@ class _PermissionsPageState extends State<PermissionsPage>
           child: Center(
             child: Text(
               'Continue',
-              style: TextStyle(color: colorScheme.onPrimary, fontSize: 20),
+              style: TextStyle(color: colorScheme.onPrimary, fontSize: 20, fontWeight: .bold),
             ),
           ),
         ),
