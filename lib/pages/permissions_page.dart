@@ -190,7 +190,7 @@ class _PermissionsPageState extends State<PermissionsPage>
     final colorScheme = Theme.of(context).colorScheme;
 
     if (isGranted) {
-      return Icon(Icons.check_circle, color: colorScheme.tertiary, size: 30);
+      return Icon(Icons.check_circle, color: colorScheme.primary, size: 30);
     }
 
     return Icon(Icons.circle_outlined, color: colorScheme.outline, size: 30);
