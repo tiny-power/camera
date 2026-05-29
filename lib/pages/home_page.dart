@@ -7,7 +7,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:noise_meter/noise_meter.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -280,16 +279,6 @@ class _HomePageState extends State<HomePage>
     if (_isListening) return;
 
     try {
-      final status = await Permission.microphone.request();
-      if (!status.isGranted) {
-        if (!mounted) return;
-        setState(() {
-          _cameraError =
-              'Microphone permission is required for hands-free photos.';
-        });
-        return;
-      }
-
       if (Platform.isIOS) {
         await _startIosClapDetection();
       } else {

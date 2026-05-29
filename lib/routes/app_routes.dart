@@ -1,6 +1,7 @@
 import 'package:hand_camera/pages/home_page.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hand_camera/pages/permissions_page.dart';
 import 'package:hand_camera/pages/photo_captured_page.dart';
 import 'package:hand_camera/pages/record_page.dart';
 
@@ -12,7 +13,8 @@ class AppRoutes {
     observers: [routeObserver],
     initialLocation: '/',
     routes: [
-      GoRoute(path: '/', builder: (context, state) => const HomePage()),
+      GoRoute(path: '/', builder: (context, state) => const PermissionsPage()),
+      GoRoute(path: '/home', builder: (context, state) => const HomePage()),
       GoRoute(
         path: '/photo-captured',
         builder: (context, state) {

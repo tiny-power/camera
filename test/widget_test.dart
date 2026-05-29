@@ -5,17 +5,20 @@
 // gestures. You can also use WidgetTester to find child widgets in the widget
 // tree, read text, and verify that the values of widget properties are correct.
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:hand_camera/main.dart';
 
 void main() {
-  testWidgets('App starts on the camera page', (WidgetTester tester) async {
+  testWidgets('App starts on the permissions page', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(const MyApp());
     await tester.pump(const Duration(seconds: 1));
 
     expect(find.byType(MyApp), findsOneWidget);
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.text('Permissions Needed'), findsOneWidget);
+    expect(find.text('Camera'), findsOneWidget);
+    expect(find.text('Microphone'), findsOneWidget);
   });
 }

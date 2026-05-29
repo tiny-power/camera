@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:gal/gal.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hand_camera/providers/rewarder_model.dart';
@@ -77,131 +76,123 @@ class _PhotoCapturedPageState extends State<PhotoCapturedPage> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle(
-        statusBarColor: colorScheme.surface,
-        statusBarIconBrightness: Brightness.light,
-        statusBarBrightness: Brightness.dark,
-        systemNavigationBarColor: colorScheme.surface,
-      ),
-      child: Scaffold(
-        backgroundColor: colorScheme.surface,
-        body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Column(
-              children: [
-                const SizedBox(height: 30),
-                Text(
-                  widget.imagePaths.length == 1
-                      ? 'Photo Captured'
-                      : '${widget.imagePaths.length} Photos Captured',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: colorScheme.onSurface,
-                    fontSize: 24,
-                    height: 1.15,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0,
-                  ),
+    return Scaffold(
+      backgroundColor: colorScheme.surface,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
+            children: [
+              const SizedBox(height: 30),
+              Text(
+                widget.imagePaths.length == 1
+                    ? 'Photo Captured'
+                    : '${widget.imagePaths.length} Photos Captured',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: colorScheme.onSurface,
+                  fontSize: 24,
+                  height: 1.15,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0,
                 ),
-                const SizedBox(height: 30),
-                Expanded(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final buttonAreaHeight = 138.0;
-                      final frameHeight =
-                          constraints.maxHeight - buttonAreaHeight;
+              ),
+              const SizedBox(height: 30),
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final buttonAreaHeight = 138.0;
+                    final frameHeight =
+                        constraints.maxHeight - buttonAreaHeight;
 
-                      return Column(
-                        children: [
-                          SizedBox(
-                            width: double.infinity,
-                            height: frameHeight.clamp(280.0, 620.0),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(16),
-                              child: ColoredBox(
-                                color: colorScheme.surfaceContainerHighest,
-                                child: PageView.builder(
-                                  itemCount: widget.imagePaths.length,
-                                  itemBuilder: (context, index) {
-                                    return Stack(
-                                      fit: StackFit.expand,
-                                      children: [
-                                        Image.file(
-                                          File(widget.imagePaths[index]),
-                                          fit: BoxFit.contain,
-                                          errorBuilder:
-                                              (context, error, stackTrace) {
-                                                return Center(
-                                                  child: Text(
-                                                    'Photo unavailable',
-                                                    style: TextStyle(
-                                                      color:
-                                                          colorScheme.onSurface,
-                                                    ),
-                                                  ),
-                                                );
-                                              },
-                                        ),
-                                        if (widget.imagePaths.length > 1)
-                                          Positioned(
-                                            right: 12,
-                                            bottom: 12,
-                                            child: DecoratedBox(
-                                              decoration: BoxDecoration(
-                                                color: colorScheme.scrim
-                                                    .withValues(alpha: 0.58),
-                                                borderRadius:
-                                                    BorderRadius.circular(14),
-                                              ),
-                                              child: Padding(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 9,
-                                                      vertical: 5,
-                                                    ),
+                    return Column(
+                      children: [
+                        SizedBox(
+                          width: double.infinity,
+                          height: frameHeight.clamp(280.0, 620.0),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: ColoredBox(
+                              color: colorScheme.surfaceContainerHighest,
+                              child: PageView.builder(
+                                itemCount: widget.imagePaths.length,
+                                itemBuilder: (context, index) {
+                                  return Stack(
+                                    fit: StackFit.expand,
+                                    children: [
+                                      Image.file(
+                                        File(widget.imagePaths[index]),
+                                        fit: BoxFit.contain,
+                                        errorBuilder:
+                                            (context, error, stackTrace) {
+                                              return Center(
                                                 child: Text(
-                                                  '${index + 1}/${widget.imagePaths.length}',
+                                                  'Photo unavailable',
                                                   style: TextStyle(
-                                                    color: colorScheme
-                                                        .onInverseSurface,
-                                                    fontSize: 12,
-                                                    fontWeight: FontWeight.w700,
+                                                    color:
+                                                        colorScheme.onSurface,
                                                   ),
+                                                ),
+                                              );
+                                            },
+                                      ),
+                                      if (widget.imagePaths.length > 1)
+                                        Positioned(
+                                          right: 12,
+                                          bottom: 12,
+                                          child: DecoratedBox(
+                                            decoration: BoxDecoration(
+                                              color: colorScheme.scrim
+                                                  .withValues(alpha: 0.58),
+                                              borderRadius:
+                                                  BorderRadius.circular(14),
+                                            ),
+                                            child: Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 9,
+                                                    vertical: 5,
+                                                  ),
+                                              child: Text(
+                                                '${index + 1}/${widget.imagePaths.length}',
+                                                style: TextStyle(
+                                                  color: colorScheme
+                                                      .onInverseSurface,
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w700,
                                                 ),
                                               ),
                                             ),
                                           ),
-                                      ],
-                                    );
-                                  },
-                                ),
+                                        ),
+                                    ],
+                                  );
+                                },
                               ),
                             ),
                           ),
-                          const Spacer(),
-                          _buildActions(),
-                          if (_savedMessage != null) ...[
-                            const SizedBox(height: 10),
-                            Text(
-                              _savedMessage!,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: colorScheme.onSurfaceVariant,
-                                fontSize: 11,
-                              ),
+                        ),
+                        const Spacer(),
+                        _buildActions(),
+                        if (_savedMessage != null) ...[
+                          const SizedBox(height: 10),
+                          Text(
+                            _savedMessage!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: colorScheme.onSurfaceVariant,
+                              fontSize: 11,
                             ),
-                          ],
+                          ),
                         ],
-                      );
-                    },
-                  ),
+                      ],
+                    );
+                  },
                 ),
-                const SizedBox(height: 16),
-              ],
-            ),
+              ),
+              const SizedBox(height: 16),
+            ],
           ),
         ),
       ),

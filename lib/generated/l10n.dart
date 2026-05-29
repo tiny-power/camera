@@ -54,9 +54,9 @@ class S {
     return Localizations.of<S>(context, S);
   }
 
-  /// `Camera`
+  /// `Clapo`
   String get app_name {
-    return Intl.message('Camera', name: 'app_name', desc: '', args: []);
+    return Intl.message('Clapo', name: 'app_name', desc: '', args: []);
   }
 
   /// `Delete`

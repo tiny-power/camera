@@ -51,8 +51,6 @@ dependencies:
   flutter_easyloading: ^3.0.5
   flutter_launcher_icons: ^0.14.4
   shared_preferences: ^2.5.5
-  purchases_flutter: ^9.15.1
-  purchases_ui_flutter: ^9.15.1
   camera: ^0.12.0+1
   noise_meter: ^5.1.0
   permission_handler: ^12.0.1

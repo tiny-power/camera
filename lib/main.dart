@@ -16,10 +16,7 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:dio/dio.dart';
 import 'package:flex_color_scheme/flex_color_scheme.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
-import 'package:purchases_flutter/purchases_flutter.dart';
 import 'routes/app_routes.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -31,21 +28,8 @@ final dio = Dio();
 
 Future<void> main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
-  await initializeRevenueCat();
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
   runApp(const MyApp());
-}
-
-Future<void> initializeRevenueCat() async {
-  String apiKey;
-  if (Platform.isIOS) {
-    apiKey = 'appl_jWvcrHaKDyVsrBUoyPIXjzWRUhl';
-  } else if (Platform.isAndroid) {
-    apiKey = 'test_XeYidoxQMAQYnPozbbOgwXxrdaq';
-  } else {
-    throw UnsupportedError('Platform not supported');
-  }
-  await Purchases.configure(PurchasesConfiguration(apiKey));
 }
 
 class MyApp extends StatefulWidget {
