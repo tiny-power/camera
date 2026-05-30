@@ -26,19 +26,28 @@ class _HomePageState extends State<HomePage>
   StreamSubscription<NoiseReading>? _noiseSubscription;
   StreamSubscription<dynamic>? _clapSubscription;
   Timer? _countdownTimer;
+  Timer? _zoomThrottleTimer;
   String? _cameraError;
   String? _activeSettingsPanel;
   bool _isInitializing = false;
   bool _isListening = false;
   bool _isCountingDown = false;
   bool _isTakingPicture = false;
-  FlashMode _flashMode = FlashMode.always;
+  FlashMode _flashMode = FlashMode.off;
   bool _resumeListeningAfterCapture = false;
   int _countdown = 3;
   int _countdownSeconds = 3;
   int _captureCount = 1;
   String _aspectRatioLabel = '4:3';
   double _ambientDecibel = 0;
+  double _minZoomLevel = 1;
+  double _maxZoomLevel = 1;
+  double _currentZoomLevel = 1;
+  double _baseZoomLevel = 1;
+  double? _queuedZoomLevel;
+  final ValueNotifier<double> _displayZoomLevelNotifier = ValueNotifier<double>(
+    1,
+  );
   DateTime? _lastTriggerAt;
 
   static const List<int> _countdownOptions = [3, 5, 10, 15, 20, 30];
@@ -49,11 +58,13 @@ class _HomePageState extends State<HomePage>
     'Burst 15': 15,
     'Burst 20': 20,
   };
-  static const Map<String, double> _aspectRatioOptions = {
+  static const Map<String, double?> _aspectRatioOptions = {
     '4:3': 4 / 3,
     '16:9': 16 / 9,
     '1:1': 1,
+    'Full': null,
   };
+  static const double _maximumAllowedZoomLevel = 5;
   static const double _absoluteTriggerDecibel = 82;
   static const double _relativeTriggerDecibel = 18;
   static const Duration _triggerCooldown = Duration(seconds: 4);
@@ -78,7 +89,9 @@ class _HomePageState extends State<HomePage>
     WidgetsBinding.instance.removeObserver(this);
     _stopSoundDetection();
     _countdownTimer?.cancel();
+    _zoomThrottleTimer?.cancel();
     _disposeCamera();
+    _displayZoomLevelNotifier.dispose();
     super.dispose();
   }
 
@@ -140,8 +153,13 @@ class _HomePageState extends State<HomePage>
           ? _cameras[_selectedCameraIndex]
           : _cameraController == null
           ? _cameras.firstWhere(
-              (camera) => camera.lensDirection == CameraLensDirection.back,
-              orElse: () => _cameras[_selectedCameraIndex],
+              (camera) =>
+                  camera.lensDirection == CameraLensDirection.back &&
+                  camera.lensType == CameraLensType.wide,
+              orElse: () => _cameras.firstWhere(
+                (camera) => camera.lensDirection == CameraLensDirection.back,
+                orElse: () => _cameras[_selectedCameraIndex],
+              ),
             )
           : _cameras[_selectedCameraIndex];
       _selectedCameraIndex = _cameras.indexOf(camera);
@@ -152,6 +170,7 @@ class _HomePageState extends State<HomePage>
       );
 
       await controller.initialize();
+      await _initializeZoom(controller);
       await _applyFlashMode(controller);
       if (!mounted) {
         await controller.dispose();
@@ -181,6 +200,30 @@ class _HomePageState extends State<HomePage>
     final controller = _cameraController;
     _cameraController = null;
     await controller?.dispose();
+  }
+
+  Future<void> _initializeZoom(CameraController controller) async {
+    try {
+      final minZoomLevel = await controller.getMinZoomLevel();
+      final cameraMaxZoomLevel = await controller.getMaxZoomLevel();
+      final maxZoomLevel = cameraMaxZoomLevel.clamp(
+        minZoomLevel,
+        _maximumAllowedZoomLevel,
+      );
+      final zoomLevel = minZoomLevel.clamp(minZoomLevel, maxZoomLevel);
+      await controller.setZoomLevel(zoomLevel);
+      _minZoomLevel = minZoomLevel;
+      _maxZoomLevel = maxZoomLevel;
+      _currentZoomLevel = zoomLevel;
+      _baseZoomLevel = zoomLevel;
+      _displayZoomLevelNotifier.value = _currentZoomLevel;
+    } catch (_) {
+      _minZoomLevel = 1;
+      _maxZoomLevel = 1;
+      _currentZoomLevel = 1;
+      _baseZoomLevel = 1;
+      _displayZoomLevelNotifier.value = 1;
+    }
   }
 
   Future<void> _applyFlashMode(CameraController controller) async {
@@ -240,6 +283,14 @@ class _HomePageState extends State<HomePage>
       FlashMode.always || FlashMode.auto => colorScheme.primary,
       _ => colorScheme.onInverseSurface,
     };
+  }
+
+  String _formatZoomLevel(double zoomLevel) {
+    if ((zoomLevel - zoomLevel.round()).abs() < 0.05) {
+      return '${zoomLevel.round()}x';
+    }
+
+    return '${zoomLevel.toStringAsFixed(1)}x';
   }
 
   Future<void> _toggleFlash() async {
@@ -464,6 +515,59 @@ class _HomePageState extends State<HomePage>
     );
   }
 
+  void _handleScaleStart(ScaleStartDetails details) {
+    _baseZoomLevel = _currentZoomLevel;
+  }
+
+  void _handleScaleUpdate(ScaleUpdateDetails details) {
+    final controller = _cameraController;
+    if (controller == null ||
+        !controller.value.isInitialized ||
+        details.pointerCount < 2 ||
+        _isTakingPicture) {
+      return;
+    }
+
+    final nextZoomLevel = (_baseZoomLevel * details.scale).clamp(
+      _minZoomLevel,
+      _maxZoomLevel,
+    );
+    if ((nextZoomLevel - _currentZoomLevel).abs() < 0.01) return;
+
+    _currentZoomLevel = nextZoomLevel;
+    _displayZoomLevelNotifier.value = _currentZoomLevel;
+    _scheduleZoomLevel(nextZoomLevel);
+  }
+
+  Future<void> _handleScaleEnd(ScaleEndDetails details) async {
+    _zoomThrottleTimer?.cancel();
+    final queuedZoomLevel = _queuedZoomLevel;
+    _queuedZoomLevel = null;
+
+    final controller = _cameraController;
+    if (queuedZoomLevel != null &&
+        controller != null &&
+        controller.value.isInitialized) {
+      await controller.setZoomLevel(queuedZoomLevel).catchError((_) {});
+    }
+  }
+
+  void _scheduleZoomLevel(double zoomLevel) {
+    _queuedZoomLevel = zoomLevel;
+    if (_zoomThrottleTimer?.isActive ?? false) return;
+
+    _zoomThrottleTimer = Timer(const Duration(milliseconds: 33), () {
+      final queuedZoomLevel = _queuedZoomLevel;
+      _queuedZoomLevel = null;
+      final controller = _cameraController;
+      if (queuedZoomLevel != null &&
+          controller != null &&
+          controller.value.isInitialized) {
+        controller.setZoomLevel(queuedZoomLevel).catchError((_) {});
+      }
+    });
+  }
+
   Future<void> _takePicture() async {
     final controller = _cameraController;
     if (controller == null ||
@@ -526,9 +630,10 @@ class _HomePageState extends State<HomePage>
     try {
       final sourceWidth = sourceImage.width.toDouble();
       final sourceHeight = sourceImage.height.toDouble();
-      final selectedAspectRatio =
-          _aspectRatioOptions[_aspectRatioLabel] ??
-          _aspectRatioOptions.values.first;
+      final selectedAspectRatio = _aspectRatioOptions[_aspectRatioLabel];
+      if (selectedAspectRatio == null) {
+        return imagePath;
+      }
       final targetAspectRatio = sourceWidth >= sourceHeight
           ? selectedAspectRatio
           : 1 / selectedAspectRatio;
@@ -599,7 +704,15 @@ class _HomePageState extends State<HomePage>
     return Scaffold(
       body: Stack(
         children: [
-          Positioned.fill(child: _buildCameraView()),
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onScaleStart: _handleScaleStart,
+              onScaleUpdate: _handleScaleUpdate,
+              onScaleEnd: _handleScaleEnd,
+              child: _buildCameraView(),
+            ),
+          ),
           Positioned(
             left: 16,
             right: 16,
@@ -809,14 +922,49 @@ class _HomePageState extends State<HomePage>
           Positioned(
             left: 0,
             right: 0,
-            bottom: 146,
+            bottom: 112,
             child: Center(child: _buildCaptureButton()),
           ),
+          if (!_isCountingDown &&
+              !_isTakingPicture &&
+              _maxZoomLevel > _minZoomLevel)
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: _isListening ? 260 : 196,
+              child: Center(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: buttonBackground,
+                    borderRadius: BorderRadius.circular(40),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 13,
+                      vertical: 7,
+                    ),
+                    child: ValueListenableBuilder<double>(
+                      valueListenable: _displayZoomLevelNotifier,
+                      builder: (context, zoomLevel, child) {
+                        return Text(
+                          _formatZoomLevel(zoomLevel),
+                          style: TextStyle(
+                            color: colorScheme.primary,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 13,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ),
+            ),
           if (_isListening && !_isCountingDown && !_isTakingPicture)
             Positioned(
               left: 16,
               right: 16,
-              bottom: 232,
+              bottom: 196,
               child: Center(
                 child: DecoratedBox(
                   decoration: BoxDecoration(
@@ -840,7 +988,7 @@ class _HomePageState extends State<HomePage>
                       style: TextStyle(
                         color: colorScheme.primary,
                         fontWeight: FontWeight.w700,
-                        fontSize: 16
+                        fontSize: 16,
                       ),
                     ),
                   ),
@@ -1024,9 +1172,11 @@ class _HomePageState extends State<HomePage>
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final selectedAspectRatio =
-            _aspectRatioOptions[_aspectRatioLabel] ??
-            _aspectRatioOptions.values.first;
+        final selectedAspectRatio = _aspectRatioOptions[_aspectRatioLabel];
+        if (selectedAspectRatio == null) {
+          return _buildCameraPreview(controller);
+        }
+
         final frameAspectRatio = constraints.maxWidth <= constraints.maxHeight
             ? 1 / selectedAspectRatio
             : selectedAspectRatio;
