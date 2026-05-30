@@ -18,5 +18,5 @@
 ## Architecture
 
 - Feature-first structure
-- Riverpod for state management
+- Provider for state management
 - Repository pattern
